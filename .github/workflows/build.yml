@@ -18,6 +18,9 @@ jobs:
           cache: 'maven'
       - run: java --version
 
+      - name: Build Pulsar
+        run: mvn clean install -B -ntp -DskipTests
+
       - name: Build Pulsar images
         run: mvn package -B -ntp -Pdocker,-main -DskipTests
 
