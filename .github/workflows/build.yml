@@ -1,7 +1,6 @@
 on:
   workflow_dispatch:
-  schedule:
-    - cron:  '0 1 * * *'
+    - cron:  '0 16 * * *'
 
 env:
   REGISTRY: ghcr.io
@@ -14,12 +13,19 @@ jobs:
         with:
           repository: apache/pulsar
           ref: master
+
       - uses: actions/setup-java@v2
         with:
           distribution: 'temurin'
           java-version: '11'
           cache: 'maven'
+
       - run: java --version
+      - name: Echo Pulsar version and sha1
+        run: |
+          VERSION=$(mvn -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec -q)
+          PROJECT_SHA1=$(git rev-parse --short HEAD)
+          echo $VERSION-$PROJECT_SHA1
 
       - name: Build Pulsar
         run: mvn clean install -B -ntp -DskipTests
@@ -41,6 +47,9 @@ jobs:
         run: |
           VERSION=$(mvn -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec -q)
           PROJECT_SHA1=$(git rev-parse --short HEAD)
-          
-          docker push apachepulsar/pulsar-test-latest-version:latest ghcr.io/${{ github.actor }}/pulsar-test-latest-version:latest
-          docker push apachepulsar/pulsar-test-latest-version:latest ghcr.io/${{ github.actor }}/pulsar-test-latest-version:$VERSION-$PROJECT_SHA1
+
+          docker tag apachepulsar/pulsar-test-latest-version:latest ghcr.io/${{ github.actor }}/pulsar-test-latest-version:latest
+          docker push ghcr.io/${{ github.actor }}/pulsar-test-latest-version:latest
+
+          docker tag apachepulsar/pulsar-test-latest-version:latest ghcr.io/${{ github.actor }}/pulsar-test-latest-version:$VERSION-$PROJECT_SHA1
+          docker push ghcr.io/${{ github.actor }}/pulsar-test-latest-version:$VERSION-$PROJECT_SHA1
