@@ -49,7 +49,7 @@ jobs:
 
           PULSAR_VERSION=$(mvn -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec -q)
           PULSAR_SHA1=$(git rev-parse --short HEAD)
-          SHA_IMAGE=ghcr.io/${{ github.actor }}/pulsar-test-latest-version:$VERSION-$PROJECT_SHA1
+          SHA_IMAGE=ghcr.io/${{ github.actor }}/pulsar-test-latest-version:$PULSAR_VERSION-$PULSAR_SHA1
           
           docker tag $BASH_IMAGE $SHA_IMAGE
           docker push $SHA_IMAGE
