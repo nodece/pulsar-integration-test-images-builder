@@ -41,11 +41,15 @@ jobs:
 
       - name: Push pulsar-test-latest-version image
         run: |
-          VERSION=$(mvn -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec -q)
-          PROJECT_SHA1=$(git rev-parse --short HEAD)
+          BASH_IMAGE=apachepulsar/pulsar-test-latest-version:latest
+          
+          LATEST_IMAGE=ghcr.io/${{ github.actor }}/pulsar-test-latest-version:latest
+          docker tag $BASH_IMAGE $LATEST_IMAGE
+          docker push $LATEST_IMAGE
 
-          docker tag apachepulsar/pulsar-test-latest-version:latest ghcr.io/${{ github.actor }}/pulsar-test-latest-version:latest
-          docker push ghcr.io/${{ github.actor }}/pulsar-test-latest-version:latest
-
-          docker tag apachepulsar/pulsar-test-latest-version:latest ghcr.io/${{ github.actor }}/pulsar-test-latest-version:$VERSION-$PROJECT_SHA1
-          docker push ghcr.io/${{ github.actor }}/pulsar-test-latest-version:$VERSION-$PROJECT_SHA1
+          PULSAR_VERSION=$(mvn -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec -q)
+          PULSAR_SHA1=$(git rev-parse --short HEAD)
+          SHA_IMAGE=ghcr.io/${{ github.actor }}/pulsar-test-latest-version:$VERSION-$PROJECT_SHA1
+          
+          docker tag $BASH_IMAGE $SHA_IMAGE
+          docker push $SHA_IMAGE
