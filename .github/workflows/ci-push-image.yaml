@@ -1,0 +1,52 @@
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: '0 16 * * *'
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+  build-pulsar-images:
+    runs-on: ubuntu-20.04
+    steps:
+      - uses: actions/setup-java@v2
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+          cache: 'maven'
+
+      - run: java --version
+
+      - name: Build Pulsar
+        run: mvn clean install  -DskipTests -Dspotbugs.skip=true -Dlicense.skip=true -Dcheckstyle.skip=true -Drat.skip=true
+
+      - name: Build Pulsar images
+        run: |
+          mvn -B -am -pl pulsar-sql/presto-distribution,distribution/io,distribution/offloaders,distribution/server,tests/docker-images/latest-version-image install \
+          -Pmain,docker -Dmaven.test.skip=true -Ddocker.squash=true \
+          -Dspotbugs.skip=true -Dlicense.skip=true -Dcheckstyle.skip=true -Drat.skip=true
+
+      - name: List Docker images
+        run: docker images
+
+      - name: Login to GitHub Container Registry
+        uses: docker/login-action@v1
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Push pulsar-test-latest-version image
+        run: |
+          BASH_IMAGE=apachepulsar/pulsar-test-latest-version:latest
+          
+          LATEST_IMAGE=ghcr.io/${{ github.actor }}/pulsar-test-latest-version:latest
+          docker tag $BASH_IMAGE $LATEST_IMAGE
+          docker push $LATEST_IMAGE
+          PULSAR_VERSION=$(mvn -Dexec.executable='echo' -Dexec.args='${project.version}' --non-recursive exec:exec -q)
+          PULSAR_SHA1=$(git rev-parse --short HEAD)
+          SHA_IMAGE=ghcr.io/${{ github.actor }}/pulsar-test-latest-version:$PULSAR_VERSION-$PULSAR_SHA1
+          
+          docker tag $BASH_IMAGE $SHA_IMAGE
+          docker push $SHA_IMAGE
